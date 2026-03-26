@@ -1,0 +1,12 @@
+The following files have to be downloaded from external sources and copied to the correct directories:
+
+dbNSFP4.7 -> own location on local drive, update path in code; from dbNSFP database (www.dbnsfp.org)
+AlphaMissense_aa_substitutions.tsv.gz -> data/ from AlphaMissense (console.cloud.google.com/storage/browser/dm_alphamissense)
+ALL_hum_isoforms_ESM1b_LLR.zip -> data/esm1b/ (unzipped) from ESM1b (huggingface.co/spaces/ntranoslab/esm_variants/blob/main/ALL_hum_isoforms_ESM1b_LLR.zip)
+freq.vcf.gz -> variation/ from dbSNP (ftp.ncbi.nih.gov/snp/population_frequency/latest_release) [this is not used, but need to be commented out in the code if not provided]
+gencode.v46.annotation.gff3.gz -> data/human/ from Gencode (www.gencodegenes.org)
+gencode.v46.pc_transcripts.fa -> data/human/ from Gencode (www.gencodegenes.org)
+mobidb_prediction-disorder-th_50 -> data/human/ from MobiDB (www.mobidb.org)
+phenotype.hpoa -> data/human/ from HPO (hpo.jax.org)
+
+Some files have been compressed; if the code throws an error because a file is not found, it may be that it needs to be unzipped. If something else is missing, please get in touch!  

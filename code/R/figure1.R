@@ -1,0 +1,944 @@
+# Estimating the mutation prevalence in the ageing human proteome 
+# S Pechmann (2026)
+# Figure 1
+
+library(ggplot2)
+library(reshape2)
+library(cowplot)
+library(ggridges)
+library(dendextend)
+library(ggdendro)
+
+setwd("~/missense")
+
+
+
+# --------------------- Figure 1A ---------------------
+# plot shapes for schematics
+
+x <- c(1:830)/100
+dna <- data.frame(x=x, y1=sin(x-1), y2=-sin(x-1))
+
+svg("figures/dna.svg", height=3, width=10)
+ggplot(dna) + 
+  geom_line(aes(x=x, y=y1), size=5) + 
+  geom_line(aes(x=x, y=y2), size=5) + 
+  labs(x="", y="") + 
+  theme_classic() + 
+  theme(
+    axis.line = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+dev.off()
+
+#---
+
+svg("figures/helix.svg", height=3.5, width=2)
+helix <- data.frame(x = c(1:2000)/100, y=sin(c(1:2000)/100) )
+ggplot(helix) + 
+  geom_line(aes(x=x, y=y), size=5) + 
+  labs(x="", y="") + 
+  coord_flip() + 
+  theme_classic() + 
+  theme(
+    axis.line = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+dev.off()
+
+#---
+
+geno <- read.table("data/processed/mutations_genetic2.txt", header=T)
+timeevol_example <- data.frame(t=c(1:8000), avrg=(geno$AlphaMiss_full[3]+geno$ESM1b_full[3])/2*c(1:8000)*10e-9, 
+                               AlphaMiss=geno$AlphaMiss_full[3]*c(1:8000)*10e-9,
+                               ESM1b=geno$ESM1b_full[3]*c(1:8000)*10e-9 )
+
+
+svg("figures/figure1/timeevol_example_schematic.svg", height=3, width=3)
+
+ggplot(timeevol_example) + 
+  geom_line(aes(x=t, y=avrg), color="#88B04B", size=3) + 
+  labs(x="Time", y=expression(P[g]^d), title="Protein")+
+  theme_classic() + 
+  theme(
+    axis.title = element_text(size=32),
+    title = element_text(size=20),
+    axis.ticks = element_blank(),
+    axis.text = element_blank()
+  )
+
+dev.off()
+
+#scale_x_discrete( labels=c(paste("\u03B2", "1", sep=""), paste("\u03B1", "1", sep=""), paste("\u03B2", "2", sep=""), paste("\u03B2", "3", sep=""), paste("\u03B1", "2", sep=""), paste("\u03B2", "4", sep=""), paste("\u03B1", "3", sep=""), paste("\u03B2", "5", sep=""), paste("\u03B1", "4", sep=""), paste("\u03B2", "6", sep=""), paste("\u03B1", "5", sep="") )) + 
+
+#---
+
+score <- data.frame(name=geno$Gene, score=(geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2 * 10e-9, 
+                    score20 = (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2*2000 * 10e-9,
+                    score40 = (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2*4000 * 10e-9,
+                    score60 = (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2*6000 * 10e-9,
+                    score80 = (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2*8000 * 10e-9
+)
+
+score.m <- melt(score)
+score.m <- score.m[(is.na(score.m$value)==F),]
+score.m$value <- as.numeric(score.m$value)
+score.m$variable <- factor(score.m$variable)
+score.m <- score.m[score.m$value > 0,]
+
+
+svg("figures/figure1/timeevol_proteome_schematic.svg", height=3, width=3)
+
+ggplot(score.m, aes(x=log(value), y=variable, fill=..x..)) + 
+  geom_density_ridges_gradient( scale=0.95, rel_min_height=0.01 , show.legend=F, color="white") +  
+  scale_fill_gradient(low="#A0C06F", high="#5F7B35", na.value="#555555") + 
+  coord_flip() + 
+  labs(y="Time", x=expression(paste("log ",  P[g]^d)), title="Proteome") + 
+  theme_classic() + 
+  theme(
+    title = element_text(size=20),
+    axis.title = element_text(size=32), 
+    axis.text = element_blank(), 
+    axis.ticks= element_blank()
+  )
+
+dev.off()
+
+#A0C06F, #88B04B, #5F7B35, #445826
+
+
+
+
+# --------------------- Figure 1B ---------------------
+
+pheno <- as.data.frame(read.table("data/processed/mutations_phenotypic.txt", header=T))
+pheno_schematic <- data.frame(t=c(1,2,3,4), viable=c(0.8, 0.78, 0.76, 0.74), del=c(0.1, 0.12, 0.14, 0.16))
+p.m <- melt(pheno_schematic, id='t')
+
+svg("figures/figure1/timeevol_pheno_schematic.svg", height=4, width=4)
+
+ggplot(p.m, aes(x=t)) + 
+  geom_col(aes(y=value, fill=variable), position=position_dodge2(), show.legend=T ) + 
+  scale_fill_manual(values=c("#CCCCCC", "#A0C06F")) +
+  labs(x="Time", y="Variants", title="Protein") +
+  theme_classic() + 
+  theme(
+    title = element_text(size=28),
+    axis.title = element_text(size=40),
+    axis.ticks = element_blank(),
+    axis.text = element_blank(), 
+    legend.title = element_blank(), 
+    legend.text = element_text(size=24),
+    legend.position = 'top'
+  )
+
+dev.off()
+
+#---
+
+pp <- pheno$alpha_ribo_del[1:500]
+pheno2 <- rbind(
+  data.frame(t=rep(1, length(pp)), del=pp),
+  data.frame(t=rep(2, length(pp)), del=pp * 1.05),
+  data.frame(t=rep(3, length(pp)), del=pp * 1.12), 
+  data.frame(t=rep(4, length(pp)), del=pp * 1.2)
+)
+
+svg("figures/figure1/timeevol_pheno2_schematic.svg", height=4, width=4)
+pheno2$t <- as.factor(pheno2$t)
+
+ggplot( pheno2 ) + 
+  geom_boxplot(aes(x=t, y=del, fill=t), show.legend=F) + 
+  scale_y_continuous(limits=c(0, 2)) + 
+  labs(x="Time", y="% damaging", title="Proteome") + 
+  scale_fill_manual(values=c("#A0C06F", "#88B04B", "#5F7B35", "#445826")) + 
+  theme_classic() + 
+  theme(
+    title = element_text(size=28), 
+    axis.ticks = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_text(size=40)
+  )
+
+dev.off()
+
+
+
+# --------------------- Figure 1C ---------------------
+
+pct_diff <- abs(1 - ( geno$ESM1b_avrg/( (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2 ) ))
+avrg <- (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2
+tt <- is.na(avrg) == F
+idx <- sort(avrg[tt], index.return=T)$ix
+
+scoredf <- data.frame(x=c(1:length(avrg[tt])), avrg=avrg[tt][idx], alpha=geno$AlphaMiss_avrg[tt][idx], esm1b=geno$ESM1b_avrg[tt][idx], pct_diff=pct_diff[tt][idx])
+scoredf$lower <- ifelse(scoredf$avrg > scoredf$alpha, scoredf$alpha, scoredf$esm1b)
+scoredf$upper <- ifelse(scoredf$avrg > scoredf$esm1b, scoredf$alpha, scoredf$esm1b)
+
+
+svg("figures/figure1/score_var.svg", height=4, width=3.5)
+
+ggplot(scoredf) + 
+  #geom_point(aes(x=x, y=avrg), color="red") + 
+  #geom_ribbon(aes(x=x, ymin=(avrg-(pct_diff/2)), ymax=(avrg+(pct_diff/2)) ), color="#DDDDDD", alpha=0.5) + 
+  geom_ribbon(aes(x=x, ymin=lower, ymax=upper), color="#DDDDDD", alpha=0.5 ) + 
+  geom_line(aes(x=x, y=avrg), color="#88B04B", size=2) + 
+  labs(x="Proteins", y="Score") + 
+  #scale_y_continuous(limits=c(0, 1)) +
+  theme_classic() +
+  theme(
+    text = element_text(size=20),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_text(size=24)
+  )
+
+dev.off()
+
+
+
+#--- 
+
+svg("figures/figure1/pct_diff.svg", height=4, width=3.5)
+
+pct_diff <- abs(1 - ( geno$ESM1b_avrg/( (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2 ) ))
+pct_diff <- pct_diff[is.na(pct_diff)==F]
+pct_diff <- data.frame(pct=pct_diff*100)
+
+ggplot(pct_diff) + 
+  geom_vline(xintercept=50, linetype='dashed', col="#222222") + 
+  geom_histogram(aes(x=pct), color="white", fill="#A0C06F") +
+  labs(x="Relative difference (%)", y="Count") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+
+
+
+
+# --------------------- Figure 1D ---------------------
+
+pct_diff <- abs(1 - ( geno$ESM1b_avrg/( (geno$AlphaMiss_avrg+geno$ESM1b_avrg)/2 ) ))
+pheno_diff <- abs(1 - ( (pheno$esm1b_ribo_del/pheno$esm1b_len) /( ((pheno$alpha_ribo_del/pheno$alpha_len)+(pheno$esm1b_ribo_del/pheno$esm1b_len) )/2 ) ) )
+
+count_geno_good <- sum(pct_diff < 0.5, na.rm=T)
+count_pheno_good <- sum(pheno_diff < 0.5, na.rm=T)
+
+
+
+svg("figures/figure1/pct_diff_counts2.svg", height=4, width=2.7)
+
+counts <- c(18341, 8596, count_geno_good) # all genes, alpha/esm1b genes, genes with diff < 0.5, strict alpha/esm1b/eve genes
+
+countDF <- data.frame(counts=counts, type=c("all", "dbNSFP", "rel. diff < 50%"))
+countDF$type <- factor(countDF$type, levels=c("all", "dbNSFP", "rel. diff < 50%"))
+
+ggplot(countDF) + 
+  geom_col(aes(x=type, y=counts), fill=c("#999999", "#999999", "#A0C06F")) + 
+  labs(x="", y="Count") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20), 
+    axis.text.x = element_text(size=20, angle=30, hjust=1),
+    axis.line.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+dev.off()
+
+
+
+
+# --------------------- Figure 1E ---------------------
+
+
+geno <- as.data.frame(read.table("data/processed/mutations_genetic2.txt", header=T))
+pheno <- as.data.frame(read.table("data/processed/mutations_phenotypic.txt", header=T))
+
+
+nn <- is.na(geno$AlphaMiss_avrg) == F
+
+gpdf <- data.frame(geno=geno$AlphaMiss_avrg[nn], pheno=pheno$alpha_ribo_del[nn]/pheno$alpha_len[nn])
+R <- cor(gpdf$geno, gpdf$pheno, use='complete')
+
+svg("figures/figure1/geno_pheno.svg", height=4, width=4)
+
+ggplot(gpdf) + 
+  geom_point(aes(x=geno, y=pheno), color="#445826") + 
+  scale_x_continuous(breaks=c(0, 0.25, 0.5), labels=c(0, expression(0.25*e^-9),  expression(0.5*e^-9) ), limits=c(0, 0.55)  ) + 
+  labs(x="Avrg genotypic risk", y="Avrg phenotypic risk") + 
+  geom_text(x=0.1, y=0.0023, hjust=0, label=paste("R =", round(R, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+
+
+# --------------------- Figure 1F ---------------------
+
+mr_gf_all    <- read.table("data/processed/mutrate_genofull_all_pred.txt", header=T)
+mr_gf_all_lr <- read.table("data/processed/mutrate_genofull_all_features_LR.txt", header=T, sep='\t')
+mr_gf_all_rf <- read.table("data/processed/mutrate_genofull_all_features_RF.txt", header=T, sep='\t')
+
+mr_pf_all <- read.table("data/processed/mutrate_phenofull_all_pred.txt", header=T)
+mr_pf_all_lr <- read.table("data/processed/mutrate_phenofull_all_features_LR.txt", header=T, sep='\t')
+mr_pf_all_rf <- read.table("data/processed/mutrate_phenofull_all_features_RF.txt", header=T, sep='\t')
+
+svg("figures/figure1/pred_all.svg", height=4, width=2.5)
+
+p.geno <- ggplot(mr_gf_all, aes(x=True, y=RF)) + 
+  geom_point(color="#6b4c3f") + 
+  geom_smooth(method='lm', se=F, color="#222222", alpha=0.5) + 
+  scale_y_continuous(breaks=c(0, 400, 800), labels=c(0, expression(4*e^-6),  expression(8*e^-6) ), limits=c(0, 900) ) + 
+  scale_x_continuous(breaks=c(0, 600, 1200), labels=c(0, expression(6*e^-6),   expression(12 *e^-6)) ) + 
+  labs(x="True", y="Predicted", title="Genotypic risk") + 
+  geom_text(x=800, y=150, hjust=0, label=paste("R =", round(cor(mr_gf_all$True, mr_gf_all$RF), 2), sep=' '), col="#222222", size=4, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    title = element_text(size=12),
+    axis.title = element_text(size=20),
+    axis.text = element_text(size=14)
+  )
+
+p.pheno <- ggplot(mr_pf_all, aes(x=True, y=RF)) + 
+  geom_point(color="#ad8574") + 
+  geom_smooth(method='lm', se=F, color="#222222", alpha=0.5) + 
+  scale_y_continuous(limits=c(0.1, 1.9)) + 
+  labs(x="True", y="Predicted", title="Phenotypic risk") + 
+  geom_text(x=2, y=0.2, hjust=0, label=paste("R =", round(cor(mr_pf_all$True, mr_pf_all$RF), 2), sep=' '), col="#222222", size=4, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    title = element_text(size=12),
+    axis.title = element_text(size=20),
+    axis.text = element_text(size=14)
+  )
+
+plot_grid(p.geno, p.pheno, ncol = 1, align = 'v')
+
+dev.off()
+
+
+#--- 
+
+mr_ga_all    <- read.table("data/processed/mutrate_phenoavrg_all_pred.txt", header=T)
+mr_ga_all_lr <- read.table("data/processed/mutrate_phenoavrg_all_features_LR.txt", header=T, sep='\t')
+mr_ga_all_rf <- read.table("data/processed/mutrate_phenoavrg_all_features_RF.txt", header=T, sep='\t')
+
+mr_pa_all <- read.table("data/processed/mutrate_phenoavrg_all_pred.txt", header=T)
+mr_pa_all_lr <- read.table("data/processed/mutrate_phenoavrg_all_features_LR.txt", header=T, sep='\t')
+mr_af_all_rf <- read.table("data/processed/mutrate_phenoavrg_features_RF.txt", header=T, sep='\t')
+
+
+
+fi <- cbind(colMeans(mr_gf_all_rf), colMeans(mr_pf_all_rf))
+colnames(fi) <- c("geno", "pheno")
+fi <- fi[sort(fi[,1], decreasing=T, index.return=T)$ix,]
+fiDF <- fi[1:2,]
+
+fi.m <- melt(fiDF)
+
+
+svg("figures/figure1/pred_all_features.svg", height=4, width=2)
+
+ggplot(fi.m) + 
+  geom_col(aes(x=Var1, y=value, fill=Var2), position=position_dodge2()) + 
+  labs(x="", y="Feature importance") + 
+  scale_fill_manual(values=c("#6b4c3f", "#ad8574")) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20), 
+    axis.text.x = element_text(angle=30, hjust=1),
+    legend.title = element_blank(),
+    legend.position = 'none'
+  )
+
+dev.off()
+
+
+# --------------------- Figure 1G ---------------------
+
+mr_ga_best    <- read.table("data/processed/mutrate_genoavrg_best_pred.txt", header=T)
+mr_ga_best_lr <- read.table("data/processed/mutrate_genoavrg_best_features_LR.txt", header=T, sep='\t')
+mr_ga_best_rf <- read.table("data/processed/mutrate_genoavrg_best_features_RF.txt", header=T, sep='\t')
+
+mr_pa_best <- read.table("data/processed/mutrate_phenoavrg_best_pred.txt", header=T)
+mr_pa_best_lr <- read.table("data/processed/mutrate_phenoavrg_best_features_LR.txt", header=T, sep='\t')
+mr_pa_best_rf <- read.table("data/processed/mutrate_phenoavrg_best_features_RF.txt", header=T, sep='\t')
+
+mr_ga_prot <- read.table("data/processed/mutrate_genoavrg_prot_pred.txt", header=T)
+mr_ga_prot_lr <- read.table("data/processed/mutrate_genoavrg_prot_features_LR.txt", header=T, sep='\t')
+mr_ga_prot_rf <- read.table("data/processed/mutrate_genoavrg_prot_features_RF.txt", header=T, sep='\t')
+mr_ga_el <- read.table("data/processed/mutrate_genoavrg_el_pred.txt", header=T)
+mr_ga_el_lr <- read.table("data/processed/mutrate_genoavrg_el_features_LR.txt", header=T, sep='\t')
+mr_ga_el_rf <- read.table("data/processed/mutrate_genoavrg_el_features_RF.txt", header=T, sep='\t')
+mr_ga_hl <- read.table("data/processed/mutrate_genoavrg_hl_pred.txt", header=T)
+mr_ga_hl_lr <- read.table("data/processed/mutrate_genoavrg_hl_features_LR.txt", header=T, sep='\t')
+mr_ga_hl_rf <- read.table("data/processed/mutrate_genoavrg_hl_features_RF.txt", header=T, sep='\t')
+#
+mr_pa_prot <- read.table("data/processed/mutrate_phenoavrg_prot_pred.txt", header=T)
+mr_pa_prot_lr <- read.table("data/processed/mutrate_phenoavrg_prot_features_LR.txt", header=T, sep='\t')
+mr_pa_prot_rf <- read.table("data/processed/mutrate_phenoavrg_prot_features_RF.txt", header=T, sep='\t')
+mr_pa_el <- read.table("data/processed/mutrate_phenoavrg_el_pred.txt", header=T)
+mr_pa_el_lr <- read.table("data/processed/mutrate_phenoavrg_el_features_LR.txt", header=T, sep='\t')
+mr_pa_el_rf <- read.table("data/processed/mutrate_phenoavrg_el_features_RF.txt", header=T, sep='\t')
+mr_pa_hl <- read.table("data/processed/mutrate_phenoavrg_hl_pred.txt", header=T)
+mr_pa_hl_lr <- read.table("data/processed/mutrate_phenoavrg_hl_features_LR.txt", header=T, sep='\t')
+mr_pa_hl_rf <- read.table("data/processed/mutrate_phenoavrg_hl_features_RF.txt", header=T, sep='\t')
+
+
+performDF <- data.frame(class=c('geno', 'pheno'),
+                        Full=c(round(cor(mr_gf_all$True, mr_gf_all$RF), 2), round(cor(mr_pf_all$True, mr_pf_all$RF), 2)),
+                        Avrg=c(round(cor(mr_ga_all$True, mr_ga_all$RF), 2), round(cor(mr_pa_all$True, mr_pa_all$RF), 2)),
+                        Prot=c(round(cor(mr_ga_prot$True, mr_ga_prot$RF), 2), round(cor(mr_pa_prot$True, mr_pa_prot$RF), 2)), 
+                        EL=c(round(cor(mr_ga_el$True, mr_ga_el$RF), 2), round(cor(mr_pa_el$True, mr_pa_el$RF), 2)),
+                        HL=c(round(cor(mr_ga_hl$True, mr_ga_hl$RF), 2), round(cor(mr_pa_hl$True, mr_pa_hl$RF), 2)), 
+                        Best=c(round(cor(mr_ga_best$True, mr_ga_best$RF), 2), round(cor(mr_pa_best$True, mr_pa_best$RF), 2))
+)
+
+perform.m <- melt(performDF, id='class')
+perform.m$variable <- factor(perform.m$variable, levels=c("Best", "HL", "EL", "Prot", "Avrg", "Full"))
+
+
+svg("figures/figure1/pred_comparision.svg", height=4, width=3.2)
+
+ggplot(perform.m) + 
+  geom_hline(yintercept=0.5, linetype='dashed', col="#222222") + 
+  geom_col(aes(x=variable, y=value, fill=class), position=position_dodge2()) + 
+  scale_fill_manual(values=c("#6b4c3f", "#ad8574")) + 
+  labs(y="Correlation", x="") + 
+  coord_flip() + 
+  theme_classic() + 
+  theme(
+    text=element_text(size=20), 
+    legend.title=element_blank(),
+    legend.position='top'
+  )
+
+dev.off()
+
+
+
+
+# --------------------- Figure 1H ---------------------
+
+fi.best <- cbind(colMeans(mr_ga_best_rf), colMeans(mr_pa_best_rf))
+row.names(fi.best) <- c("contacts", "cereb.cortex")   # shorten name for plotting
+colnames(fi.best) <- c("geno", "pheno")
+fi.best <- fi.best[sort(fi.best[,1], decreasing=T, index.return=T)$ix,]
+fi.best.m <- melt(fi.best)
+fi.best.m$Var1 <- factor(fi.best.m$Var1, levels=c("contacts", "cereb.cortex"))
+
+
+svg("figures/figure1/pred_best_features.svg", height=4, width=2.2)
+
+ggplot(fi.best.m) + 
+  geom_col(aes(x=Var1, y=value, fill=Var2), position=position_dodge2()) + 
+  labs(x="", y="Feature importance", title="Best") + 
+  scale_fill_manual(values=c("#6b4c3f", "#ad8574")) + 
+  theme_classic() + 
+  theme(
+    title=element_text(size=12),
+    text = element_text(size=20), 
+    axis.text.x = element_text(angle=30, hjust=1),
+    axis.title.y = element_text(size=20), 
+    legend.title = element_blank(),
+    legend.position = 'none'
+  )
+
+dev.off()
+
+
+
+# Figure 1J ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+arv <- read.table("data/processed/all_reg_vars_log.txt", header=T, sep='\t')
+el_data <- arv[,c(12:52)]
+el_data <- as.matrix(el_data)
+cos.simil <- matrix(NA, ncol(el_data), ncol(el_data))
+
+for (i in 1:ncol(el_data)){
+  for (j in 1:ncol(el_data)){
+    cos.simil[i,j] <- cor(el_data[,i], el_data[,j], use='complete')
+  }
+}
+colnames(cos.simil) <- colnames(el_data)
+row.names(cos.simil) <- colnames(el_data)
+
+dist.cos <- as.dist(1-cos.simil)  # distance = 1 - similarity
+hc.cos <- hclust(dist.cos)
+
+#cos.data <- dendro_data(hc.cos, type="rectangle")
+#ggdendrogram(cos.data, rotate=F, size=1) 
+cos.dend <- as.dendrogram(hc.cos)
+dend <- color_branches(cos.dend, col=c(rep("#222222", 39), "#9826bb", "#9826bb"))     # check that the correct node is colored !! 
+
+svg("figures/figure1/dendro.svg", height=3, width=4)
+
+plot(dend, leaflab = 'none', frame.plot=0)
+
+dev.off()
+
+
+#--- 
+
+ga_elcor <- rep(NA, 41)
+pa_elcor <- rep(NA, 41)
+
+for (i in 1:ncol(el_data)){
+  ga_elcor[i] <- cor( arv$geno_avrg, el_data[,i], use='complete')
+  pa_elcor[i] <- cor( arv$pheno_avrg, el_data[,i], use='complete')
+}
+
+elcor <- data.frame(geno=ga_elcor, pheno=pa_elcor)
+colo <- rep("#222222", nrow(elcor))
+colo[sort(ga_elcor, index.return=T, decreasing=T)$ix[1]] <- "#9826bb"     #"red"
+colo[which(names(el_data)=="retina")] <- "#9826bb"
+
+svg("figures/figure1/elcor.svg", height=3.6, width=4)
+
+ggplot(elcor) + 
+  geom_point(aes(x=geno, y=pheno), color=colo, size=3) + 
+  labs(x=expression(Correlation(avrgP[g]^d)), y=expression(Correlation(avrgP[ph]^d))) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+#labs(x="Time", y=expression(P[g]^d), title="Protein")+
+
+
+
+
+
+#-------------------------------------------------------
+# 
+# Supplement
+#
+# --------------------- Figure S1A ---------------------
+
+geno <- read.table("data/processed/mutations_genetic2.txt", header=T)
+predictors <- geno[,c(2,6,10,14)]
+predcors <- matrix(0, ncol=ncol(predictors), nrow=ncol(predictors))
+
+for (i in 1:ncol(predictors)){
+  for (j in i:ncol(predictors)){
+    if (j > i){ predcors[i,j] <- cor(predictors[,i], predictors[,j], use="complete")
+    }
+  }
+}
+row.names(predcors) <- c("PP2hdiv", "EVE", "AlphaMiss", "ESM1b")
+colnames(predcors) <- c("PP2hdiv", "EVE", "AlphaMiss", "ESM1b")
+diag(predcors) <- NA
+
+p2 <- melt(predcors)
+
+colfunc <- colorRampPalette(c("white", "black"))
+colo <- colfunc(10)
+
+
+svg("figures/figure1/predictors_correlation.svg", height=4, width=5)
+ggplot(p2, aes(x = Var1, y = Var2)) + 
+  geom_tile(aes(fill=value),color="white", size=0.1) + 
+  #scale_fill_viridis_c(direction=-1) + 
+  scale_fill_gradient2(low="#FFFFFF", high="#445826", na.value="#555555") + 
+  labs(x=NULL, y=NULL) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=16),
+    axis.text = element_text(size=20),
+    axis.text.x = element_text(angle=70, hjust=1),
+    axis.line = element_blank(), 
+    axis.ticks=element_blank(), 
+    legend.title = element_blank()
+    )
+dev.off()
+
+#---
+
+coverage <- geno[,c(5,9,13,17)]
+coverage[coverage==0] <- NA
+colnames(coverage) <- c("PP2hdiv", "EVE", "AlphaMiss", "ESM1b")
+coverage.m <- melt(coverage)
+
+svg("figures/figure1/predictors_coverage.svg", height=4, width=4)
+ggplot(coverage.m) + 
+  geom_boxplot(aes(x=variable, y=value), fill="#A0C06F") + 
+  labs(x="", y="Coverage (%)") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=24),
+    axis.text = element_text(size=20),
+    axis.line.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_text(angle=70, hjust=1)
+  )
+
+dev.off()
+
+
+
+# --------------------- Figure S1B ---------------------
+
+
+R_alpha = cor(geno$AlphaMiss_full, geno$AlphaMiss_avrg, use="complete")
+
+svg("figures/figure1/correlation_alpha.svg", height=4, width=4)
+
+ggplot(geno) + 
+  geom_point(aes(x=AlphaMiss_full, y=AlphaMiss_avrg), color="#A0C06F") + 
+  scale_x_continuous(limits=c(0, 2000)) + 
+  scale_y_continuous(limits=c(0, 0.6)) + 
+  geom_text(x=100, y=0.5, hjust=0, label=paste("R =", round(R_alpha, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  labs(x="AlphaMiss full", y="AlphaMiss average") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+# --------------------- Figure S1C ---------------------
+
+geno_strict <- read.table("data/processed/mutations_genetic_strict2.txt", header=T)
+
+R_all = cor(geno$AlphaMiss_avrg, geno$ESM1b_avrg, use="complete")
+N_all = sum(rowSums(is.na(geno[,c(11,14)]) == F) == 2)
+
+p.all <- ggplot(geno, aes(x=AlphaMiss_avrg, y=ESM1b_avrg)) + 
+  geom_point(color="#5F7B35") + 
+  scale_x_continuous(limits=c(0, 0.5)) + 
+  scale_y_continuous(limits=c(0, 0.5)) + 
+  labs(x="AlphaMiss", y="ESM1b", title="all") +
+  geom_text(x=0.05, y=0.5, hjust=0, label=paste("R =", round(R_all, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  geom_text(x=0.05, y=0.45, hjust=0, label=paste("N =", round(N_all, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+    theme_classic() + 
+  theme(
+    text = element_text(size=20),
+    title = element_text(size=12),
+    axis.title = element_text(size=20)
+  )
+
+
+
+R_strict = cor(geno_strict$AlphaMiss_avrg, geno_strict$ESM1b_avrg, use="complete")
+N_strict = sum(rowSums(is.na(geno_strict[,c(5,7)]) == F) == 2)
+
+p.strict <- ggplot(geno_strict, aes(x=AlphaMiss_avrg, y=ESM1b_avrg)) + 
+  geom_point(color="#445826") + 
+  scale_x_continuous(limits=c(0, 0.5)) + 
+  scale_y_continuous(limits=c(0, 0.5)) + 
+  labs(x="AlphaMiss", y="ESM1b", title="strict") +
+  geom_text(x=0.05, y=0.5, hjust=0, label=paste("R =", round(R_strict, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  geom_text(x=0.05, y=0.45, hjust=0, label=paste("N =", round(N_strict, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20),
+    title = element_text(size=12),
+    axis.title = element_text(size=20)
+  )
+
+
+svg("figures/figure1/predictors_strict.svg", height=4, width=8)
+
+plot_grid(p.all, p.strict, ncol = 2, align = 'h')
+
+dev.off()
+
+
+
+
+
+
+
+
+# --------------------- Figure S1D ---------------------
+
+geno_unweighted <- read.table("data/processed/mutations_genetic_unweighted2.txt", header=T)
+uw_alphamiss <- data.frame(weighted=geno$AlphaMiss_avrg, unweighted=geno_unweighted$AlphaMiss_avrg)  
+
+
+svg("figures/figure1/predictors_alpha.svg", height=4, width=4)
+
+ggplot(uw_alphamiss, aes(x=weighted, y=unweighted)) + 
+  geom_point(color="#88B04B") + 
+  geom_abline(slope=1, intercept=0, size=1.5, color="red") + 
+  scale_x_continuous(limits=c(0, 0.5)) + 
+  scale_y_continuous(limits=c(0, 0.5)) + 
+    labs(x="AlphaMiss weighted", y="AlphaMiss unweighted") + 
+  geom_text(x=0.05, y=0.45, hjust=0, label=paste("R =", round(R_alpha, 2), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() +
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+
+
+# --------------------- Figure S1E ---------------------
+
+damaging <- data.frame(alpha_all=geno$AlphaMiss_neutral, esm1b_all=geno$ESM1b_neutral, alpha_del=geno$AlphaMiss_avrg, esm1b_del=geno$ESM1b_avrg)
+damaging <- damaging[rowSums(is.na(damaging))<4,]
+damaging.m <- melt(damaging)
+
+
+svg("figures/figure1/predictors_damaging.svg", height=4, width=4)
+
+ggplot(damaging.m, aes(y=value)) +
+  geom_hline(yintercept=0.46, linetype='dashed', col="#222222") + 
+  geom_boxplot(aes(fill=variable)) + 
+  scale_y_continuous(breaks=c(0, 0.3, 0.6, 0.9), labels=c(0, expression(3*e^-10),  expression(6*e^-10), expression(9*e^-10) ) ) + 
+  labs(x="", y="Average mutation rate") + 
+  scale_fill_manual(values=c("#777777", "#AAAAAA", "#445826", "#88B04B")) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.line.x = element_blank(),
+    legend.position = c(0.8, 0.8),
+    legend.title= element_blank()
+  )
+  
+dev.off()
+
+
+
+# --------------------- Figure S1F ---------------------
+
+timeevol_example <- data.frame(t=c(1:8000), avrg=(geno$AlphaMiss_full[3]+geno$ESM1b_full[3])/2*c(1:8000)*10e-9, 
+                               AlphaMiss=geno$AlphaMiss_full[3]*c(1:8000)*10e-9,
+                               ESM1b=geno$ESM1b_full[3]*c(1:8000)*10e-9 )
+
+
+
+svg("figures/figure1/timeevol_example.svg", height=4, width=4)
+
+ggplot(timeevol_example) + 
+  geom_line(aes(x=t, y=AlphaMiss), color="#A0C06F", size=1) + 
+  geom_line(aes(x=t, y=ESM1b), color="#A0C06F", size=1) + 
+  geom_ribbon((aes(x=t, ymin=ESM1b, ymax=AlphaMiss)), alpha=0.5, fill="#A0C06F") + 
+  geom_line(aes(x=t, y=avrg), color="#222222", size=2) + 
+  labs(x="Time (generations)", y=expression(P[g]^d), title="B4GALT7")+
+  theme_classic() + 
+  theme(
+    text = element_text(size=20),
+    title = element_text(size=12), 
+    axis.title = element_text(size=20)
+  )
+
+dev.off()
+
+
+#--- 
+
+
+svg("figures/figure1/pct_diff_counts.svg", height=4, width=4)
+
+counts <- c(18341, 8596, count_geno_good, 1542) # all genes, alpha/esm1b genes, genes with diff < 0.5, strict alpha/esm1b/eve genes
+
+countDF <- data.frame(counts=counts, type=c("all", "Alpha&ESM1b", "diff < 50%", "strict"))
+countDF$type <- factor(countDF$type, levels=c("all", "Alpha&ESM1b", "diff < 50%", "strict"))
+
+ggplot(countDF) + 
+  geom_col(aes(x=type, y=counts), fill=c("#999999", "#999999", "#A0C06F", "#999999")) + 
+  labs(x="", y="Count") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20), 
+    axis.text.x = element_text(size=20, angle=30, hjust=1),
+    axis.line.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+dev.off()
+
+
+
+
+# --------------------- Figure S2A ---------------------
+
+plpl <- read.table("data/processed/pheno_pred_peptides.txt", header=T)
+s <- plpl$p1 > 10e-10 & plpl$p2 > 10e-5       # resolution limit 
+plpl <- plpl[s,]
+p_plpl = cor.test(plpl$p1, plpl$p2)$p.value
+R_plpl = cor(plpl)[1,2]
+
+
+svg("figures/figure1/pheno_pred_pep.svg", height=4, width=4)
+
+ggplot(plpl, aes(x=p1, y=p2)) + 
+  geom_point(size=2) + 
+  geom_smooth(method = "lm", se = F, color="#739bd0") +
+  #scale_x_continuous(breaks=c(0, 5e-6, 1e-5, 1.5e-5, 2e-5), labels=c(0, expression(1*e^-6),  expression(5*e^-5),  expression(1.5 *e^-5),  expression(2 * e^-5) )) +
+  scale_x_continuous(breaks=c(0, 0.01, 0.02) ) + 
+  labs(x="Predicted mutation probabilities", y="Mutation frequencies") +
+  geom_text(x=0.000015, y=0.0033, hjust=0, label=paste("R =", round(R_plpl, 3), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  geom_text(x=0.000015, y=0.0029, hjust=0, label=paste("p =", round(p_plpl, 3), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+
+# --------------------- Figure S2B ---------------------
+geno <- read.table("data/processed/mutations_genetic2.txt", header=T)
+
+pheno <- as.data.frame(read.table("data/processed/mutations_phenotypic.txt", header=T))
+pheno <- pheno[rowSums(is.na(geno))<12,]    # only entries also in geno (i.e. in database)
+
+p1 <- ggplot(pheno) + 
+  geom_point(aes(x=alpha_ribo_del, y=alpha_plpl_del)) + 
+  scale_x_continuous(limits=c(0, 10)) + 
+  scale_y_continuous(limits=c(0, 10)) +
+  labs(x="Alpha ribo", y="Alpha peps") + 
+  geom_text(x=0.5, y=10, hjust=0, label=paste("R =", round(cor(pheno$alpha_ribo_del, pheno$alpha_plpl_del, use="complete"), 3), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=16)
+  )
+
+p2 <- ggplot(pheno) + 
+  geom_point(aes(x=alpha_ribo_del, y=alpha_rand_del)) + 
+  scale_x_continuous(limits=c(0, 10)) + 
+  scale_y_continuous(limits=c(0, 10)) +
+  labs(x="Alpha ribo", y="Alpha rand") + 
+  geom_text(x=0.5, y=10, hjust=0, label=paste("R =", round(cor(pheno$alpha_ribo_del, pheno$alpha_rand_del, use="complete"), 3), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() +
+  theme(
+    text = element_text(size=16)
+  )
+
+p3 <- ggplot(pheno) + 
+  geom_point(aes(x=alpha_ribo_del, y=esm1b_ribo_del)) + 
+  scale_x_continuous(limits=c(0, 10)) + 
+  scale_y_continuous(limits=c(0, 10)) +
+  labs(x="Alpha ribo", y="Esm1b ribo") + 
+  geom_text(x=0.5, y=10, hjust=0, label=paste("R =", round(cor(pheno$alpha_ribo_del, pheno$esm1b_ribo_del, use="complete"), 3), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=16)
+  )
+
+df <- data.frame(alpha_r = pheno$alpha_ribo_all/pheno$alpha_len*400, 
+                 alpha_p = pheno$alpha_plpl_all/pheno$alpha_len*400, 
+                 esm1b_r = pheno$esm1b_ribo_all/pheno$esm1b_len*400,
+                 esm1b_p = pheno$esm1b_plpl_all/pheno$esm1b_len*400,
+                 alpha_r_del = pheno$alpha_ribo_del/pheno$alpha_ribo_all, 
+                 alpha_p_del = pheno$alpha_plpl_del/pheno$alpha_plpl_all, 
+                 esm1b_r_del = pheno$esm1b_ribo_del/pheno$esm1b_ribo_all,
+                 esm1b_p_del = pheno$esm1b_plpl_del/pheno$esm1b_plpl_all
+                )
+df.m <- melt(df)
+
+p4 <- ggplot(df.m) + 
+  geom_boxplot(aes(x=variable, y=value), fill=c(rep("#CCCCCC", 4), rep("#88B04B", 4) )) + 
+  labs(x="", y="MR per 400aa") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=16),
+    axis.text.x = element_text(angle=30, hjust=1, size=10),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank()
+  )
+
+
+
+svg("figures/figure1/pheno_validation.svg", height=5, width=5)
+
+plot_grid(p1, p2, p3, p4, ncol = 2, align = 'h')
+
+dev.off()
+
+
+
+# --------------------- Figure S2D ---------------------
+pheno_alpha_mean <- read.table("data/processed/pheno_alpha_mean.txt", header=T)
+anticodon <- read.table("data/human/anticodon.txt", header=T)
+blosum <- read.table("data/human/blosum62.txt", header=T)
+
+idx.pheno <- rownames(pheno_alpha_mean)
+blosumDF <- data.frame(aa=c(), mut=c(), pheno=c(), blosum=c())
+for (i in unique(anticodon$AA)){
+  current_codons <- anticodon$codon[anticodon$AA == i]
+
+  idx <- c()
+  for (j in as.character(current_codons)){
+    current_idx <- which(idx.pheno == j)
+    idx <- c(idx, current_idx)
+  }
+  
+  current_pheno <- as.matrix(colMeans(pheno_alpha_mean[idx,]))
+  #print(current_pheno)
+  #print(dim(current_pheno))
+  current_blosum <- blosum[which(rownames(blosum)==as.character(i)), ]     # colnames(current_pheno)
+  for (j in unique(anticodon$AA)){
+    score_pheno <- as.numeric(current_pheno[which(rownames(current_pheno)==j), 1])
+    score_blosum <- as.numeric(current_blosum[which(colnames(current_blosum)==j)])
+    #print(i)
+    #print(j)
+    #print(score_pheno)
+    #print(score_blosum)
+    current_df <- data.frame(aa=as.character(i), mut=as.character(j), pheno=score_pheno, blosum=score_blosum)
+    #print(current_df)
+    blosumDF <- rbind(blosumDF, current_df)
+  }
+}
+
+
+blosumDF <- blosumDF[blosumDF$aa != blosumDF$mut, ]
+
+R <- cor(blosumDF$pheno, blosumDF$blosum)
+pval <- cor.test(blosumDF$pheno, blosumDF$blosum)$p.value
+
+svg("figures/figure1/blosum.svg", height=4, width=4)
+
+ggplot(blosumDF) + 
+  geom_point(aes(x=pheno, y=blosum), color="#039bd0", size=1.5) + 
+  labs(x="Phenotypic mutations model", y="BLOSUM62 score") + 
+  geom_text(x=0.7, y=2.7, hjust=0, label=paste("R =", round(R, 3), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  geom_text(x=0.7, y=2.2, hjust=0, label=paste("p =", signif(pval, digits = 4), sep=' '), col="#222222", size=5, stat="unique", show.legend=F) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+
+# --------------------- Figure S2D ---------------------
+
+pheno_alpha_mean <- read.table("data/processed/pheno_alpha_mean.txt", header=T)
+pheno_alpha_sd <- read.table("data/processed/pheno_alpha_sd.txt", header=T)
+phenoDF <- data.frame(mean=as.vector(as.matrix(pheno_alpha_mean)), sd=as.vector(as.matrix(pheno_alpha_sd)))
+
+svg("figures/figure1/pheno_variability.svg", height=4, width=4)
+
+ggplot(phenoDF) +
+  geom_point(aes(x=mean, y=sd), color="#039bd0", size=1.5) + 
+  labs(x="Mean", y="Standard deviation") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20)
+  )
+
+dev.off()
+
+
+# same for esm1b
+pheno_esm1b_mean <- read.table("data/processed/pheno_esm1b_mean.txt", header=T)
+pheno_esm1b_sd <- read.table("data/processed/pheno_esm1b_sd.txt", header=T)
+phenoDF2 <- data.frame(mean=as.vector(as.matrix(pheno_esm1b_mean)), sd=as.vector(as.matrix(pheno_esm1b_sd)))
+
