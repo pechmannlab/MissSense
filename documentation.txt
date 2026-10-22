@@ -1,0 +1,48 @@
+Estimating the mutation prevalence in the ageing human proteome
+
+(c) S Pechmann (2026)
+
+
+0. Disclaimer:
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+1. Data requirements:
+
+	The following files have to be downloaded from external sources and copied to the correct directories:
+
+	dbNSFP4.7 -> own location on local drive, update path in code; from dbNSFP database (www.dbnsfp.org)
+	AlphaMissense_aa_substitutions.tsv.gz -> data/ from AlphaMissense (console.cloud.google.com/storage/browser/dm_alphamissense)
+	ALL_hum_isoforms_ESM1b_LLR.zip -> data/esm1b/ (unzipped) from ESM1b (huggingface.co/spaces/ntranoslab/esm_variants/blob/main/ALL_hum_isoforms_ESM1b_LLR.zip)
+	freq.vcf.gz -> variation/ from dbSNP (ftp.ncbi.nih.gov/snp/population_frequency/latest_release) [this is not used, but need to be commented out in the code if not provided]
+	gencode.v46.annotation.gff3.gz -> data/human/ from Gencode (www.gencodegenes.org)
+	gencode.v46.pc_transcripts.fa -> data/human/ from Gencode (www.gencodegenes.org)
+	mobidb_prediction-disorder-th_50 -> data/human/ from MobiDB (www.mobidb.org)
+	phenotype.hpoa -> data/human/ from HPO (hpo.jax.org)
+
+	Some files have been compressed; if the code throws an error because a file is not found, it may be that it needs to be unzipped. If something else is missing, please get in touch!  
+
+
+
+2. Computing the mutation risk scores:
+
+	The genotypic and phenotypic mutation risk scores are computed with the programme 'mutrate.py'. Details on the individual functions are provided within the computer code. Upon execution from the command line as 'python mutrate.py', this programme will: 
+		- load auxiliary data and reference sequences
+		- parse the variant predictions from external data into per-gene tables
+		- compute the genotypic and phenotypic mutation risk scores
+		- predict the mutation risk from protein and cellular features with Random Forest models
+
+
+3. Supporting evidence for the phenotypic mutation risk scores:
+	Supporting evidence for the phenotypic mutation risk is computed with the programme 'phenorate.py'. Details on the individual functions are provided within the computer code. Upon execution from the command line as 'python phenorate.py', this programme will:
+		- load auxiliary data
+		- map proteomics peptides onto coding sequences to extract codon - misincorporated amino acid frequencies
+		- cross-reference experimentally observed human amino acid misincorporation frequencies with translation errors predicted from yeast codon-anticodon interaction energies. 
+
+
+4. Network resilience and forward evolutionary simulations:
+	The programme 'resilience.py' computes the network resilience and forward evolutionary simulations to estimate the effect of genotypic and phenotypic mutations on network resilience. Details on the individual functions are provided within the computer code. Upon execution from the command line as 'python resilience.py', this programme will: 
+		- load auxiliary data
+		- perform forward simulation of the effect of genotypic and phenotypic mutations on network resilience
+		- test for an association of the mutation risk with annotations from the Human Phenotype Ontology

@@ -121,6 +121,9 @@ def binding_probs(ACdf, E2):
 def canonicalCU(fileIN, canonicalDF):
     """
     Computes codon usage across input fasta
+    Input:  - input fasta file
+            - dataframe with list of canonical transcripts and IDs
+    Output: - dictionary of codon usage
     """
 
     seq = SeqIO.parse(fileIN, "fasta")
@@ -418,7 +421,6 @@ if __name__ == '__main__':
     # load tRNA and codon-anticodon data
     anticodonDF = pd.read_csv("../data/tRNA/anticodon.txt", header=0, index_col=None, sep='\t')
     trnaDF = pd.read_csv('../data/tRNA/human_tRNA.txt', delimiter=" ", header=0)
-
 
 
 

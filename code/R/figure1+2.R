@@ -1,6 +1,7 @@
 # Estimating the mutation prevalence in the ageing human proteome 
 # S Pechmann (2026)
-# Figure 1
+# Figure 1+2
+
 
 library(ggplot2)
 library(reshape2)
@@ -71,7 +72,6 @@ ggplot(timeevol_example) +
 
 dev.off()
 
-#scale_x_discrete( labels=c(paste("\u03B2", "1", sep=""), paste("\u03B1", "1", sep=""), paste("\u03B2", "2", sep=""), paste("\u03B2", "3", sep=""), paste("\u03B1", "2", sep=""), paste("\u03B2", "4", sep=""), paste("\u03B1", "3", sep=""), paste("\u03B2", "5", sep=""), paste("\u03B1", "4", sep=""), paste("\u03B2", "6", sep=""), paste("\u03B1", "5", sep="") )) + 
 
 #---
 
@@ -105,9 +105,6 @@ ggplot(score.m, aes(x=log(value), y=variable, fill=..x..)) +
   )
 
 dev.off()
-
-#A0C06F, #88B04B, #5F7B35, #445826
-
 
 
 
@@ -283,7 +280,10 @@ dev.off()
 
 
 
-# --------------------- Figure 1F ---------------------
+
+
+
+# --------------------- Figure 2A ---------------------
 
 mr_gf_all    <- read.table("data/processed/mutrate_genofull_all_pred.txt", header=T)
 mr_gf_all_lr <- read.table("data/processed/mutrate_genofull_all_features_LR.txt", header=T, sep='\t')
@@ -293,7 +293,7 @@ mr_pf_all <- read.table("data/processed/mutrate_phenofull_all_pred.txt", header=
 mr_pf_all_lr <- read.table("data/processed/mutrate_phenofull_all_features_LR.txt", header=T, sep='\t')
 mr_pf_all_rf <- read.table("data/processed/mutrate_phenofull_all_features_RF.txt", header=T, sep='\t')
 
-svg("figures/figure1/pred_all.svg", height=4, width=2.5)
+svg("figures/figure2/pred_all.svg", height=4, width=2.5)
 
 p.geno <- ggplot(mr_gf_all, aes(x=True, y=RF)) + 
   geom_point(color="#6b4c3f") + 
@@ -347,7 +347,7 @@ fiDF <- fi[1:2,]
 fi.m <- melt(fiDF)
 
 
-svg("figures/figure1/pred_all_features.svg", height=4, width=2)
+svg("figures/figure2/pred_all_features.svg", height=4, width=2)
 
 ggplot(fi.m) + 
   geom_col(aes(x=Var1, y=value, fill=Var2), position=position_dodge2()) + 
@@ -364,7 +364,7 @@ ggplot(fi.m) +
 dev.off()
 
 
-# --------------------- Figure 1G ---------------------
+# --------------------- Figure 2B ---------------------
 
 mr_ga_best    <- read.table("data/processed/mutrate_genoavrg_best_pred.txt", header=T)
 mr_ga_best_lr <- read.table("data/processed/mutrate_genoavrg_best_features_LR.txt", header=T, sep='\t')
@@ -408,11 +408,11 @@ perform.m <- melt(performDF, id='class')
 perform.m$variable <- factor(perform.m$variable, levels=c("Best", "HL", "EL", "Prot", "Avrg", "Full"))
 
 
-svg("figures/figure1/pred_comparision.svg", height=4, width=3.2)
+svg("figures/figure2/pred_comparision.svg", height=4, width=3.2)
 
 ggplot(perform.m) + 
   geom_hline(yintercept=0.5, linetype='dashed', col="#222222") + 
-  geom_col(aes(x=variable, y=value, fill=class), position=position_dodge2()) + 
+  geom_col(aes(x=variable, y=value, fill=class),  color=c(rep('white',8),rep('red',2), rep('white', 2) ), position=position_dodge2()) + 
   scale_fill_manual(values=c("#6b4c3f", "#ad8574")) + 
   labs(y="Correlation", x="") + 
   coord_flip() + 
@@ -426,9 +426,7 @@ ggplot(perform.m) +
 dev.off()
 
 
-
-
-# --------------------- Figure 1H ---------------------
+# ---
 
 fi.best <- cbind(colMeans(mr_ga_best_rf), colMeans(mr_pa_best_rf))
 row.names(fi.best) <- c("contacts", "cereb.cortex")   # shorten name for plotting
@@ -438,7 +436,7 @@ fi.best.m <- melt(fi.best)
 fi.best.m$Var1 <- factor(fi.best.m$Var1, levels=c("contacts", "cereb.cortex"))
 
 
-svg("figures/figure1/pred_best_features.svg", height=4, width=2.2)
+svg("figures/figure2/pred_best_features.svg", height=4, width=2.2)
 
 ggplot(fi.best.m) + 
   geom_col(aes(x=Var1, y=value, fill=Var2), position=position_dodge2()) + 
@@ -458,7 +456,7 @@ dev.off()
 
 
 
-# Figure 1J ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# --------------------- Figure 2C ---------------------
 
 arv <- read.table("data/processed/all_reg_vars_log.txt", header=T, sep='\t')
 el_data <- arv[,c(12:52)]
@@ -479,9 +477,9 @@ hc.cos <- hclust(dist.cos)
 #cos.data <- dendro_data(hc.cos, type="rectangle")
 #ggdendrogram(cos.data, rotate=F, size=1) 
 cos.dend <- as.dendrogram(hc.cos)
-dend <- color_branches(cos.dend, col=c(rep("#222222", 39), "#9826bb", "#9826bb"))     # check that the correct node is colored !! 
+dend <- color_branches(cos.dend, col=c(rep("#222222", 38), "orange", "#9826bb", "#9826bb") )    # check that the correct node is colored !! 
 
-svg("figures/figure1/dendro.svg", height=3, width=4)
+svg("figures/figure2/dendro.svg", height=3, width=4)
 
 plot(dend, leaflab = 'none', frame.plot=0)
 
@@ -502,8 +500,9 @@ elcor <- data.frame(geno=ga_elcor, pheno=pa_elcor)
 colo <- rep("#222222", nrow(elcor))
 colo[sort(ga_elcor, index.return=T, decreasing=T)$ix[1]] <- "#9826bb"     #"red"
 colo[which(names(el_data)=="retina")] <- "#9826bb"
+colo[which(names(el_data)=="testis")] <- "orange"
 
-svg("figures/figure1/elcor.svg", height=3.6, width=4)
+svg("figures/figure2/elcor.svg", height=3.6, width=4)
 
 ggplot(elcor) + 
   geom_point(aes(x=geno, y=pheno), color=colo, size=3) + 
@@ -775,7 +774,7 @@ p_plpl = cor.test(plpl$p1, plpl$p2)$p.value
 R_plpl = cor(plpl)[1,2]
 
 
-svg("figures/figure1/pheno_pred_pep.svg", height=4, width=4)
+svg("figures/figure2/pheno_pred_pep.svg", height=4, width=4)
 
 ggplot(plpl, aes(x=p1, y=p2)) + 
   geom_point(size=2) + 
@@ -856,7 +855,7 @@ p4 <- ggplot(df.m) +
 
 
 
-svg("figures/figure1/pheno_validation.svg", height=5, width=5)
+svg("figures/figure2/pheno_validation.svg", height=5, width=5)
 
 plot_grid(p1, p2, p3, p4, ncol = 2, align = 'h')
 
@@ -881,29 +880,21 @@ for (i in unique(anticodon$AA)){
   }
   
   current_pheno <- as.matrix(colMeans(pheno_alpha_mean[idx,]))
-  #print(current_pheno)
-  #print(dim(current_pheno))
   current_blosum <- blosum[which(rownames(blosum)==as.character(i)), ]     # colnames(current_pheno)
   for (j in unique(anticodon$AA)){
     score_pheno <- as.numeric(current_pheno[which(rownames(current_pheno)==j), 1])
     score_blosum <- as.numeric(current_blosum[which(colnames(current_blosum)==j)])
-    #print(i)
-    #print(j)
-    #print(score_pheno)
-    #print(score_blosum)
     current_df <- data.frame(aa=as.character(i), mut=as.character(j), pheno=score_pheno, blosum=score_blosum)
-    #print(current_df)
     blosumDF <- rbind(blosumDF, current_df)
   }
 }
-
 
 blosumDF <- blosumDF[blosumDF$aa != blosumDF$mut, ]
 
 R <- cor(blosumDF$pheno, blosumDF$blosum)
 pval <- cor.test(blosumDF$pheno, blosumDF$blosum)$p.value
 
-svg("figures/figure1/blosum.svg", height=4, width=4)
+svg("figures/figure2/blosum.svg", height=4, width=4)
 
 ggplot(blosumDF) + 
   geom_point(aes(x=pheno, y=blosum), color="#039bd0", size=1.5) + 
@@ -924,7 +915,7 @@ pheno_alpha_mean <- read.table("data/processed/pheno_alpha_mean.txt", header=T)
 pheno_alpha_sd <- read.table("data/processed/pheno_alpha_sd.txt", header=T)
 phenoDF <- data.frame(mean=as.vector(as.matrix(pheno_alpha_mean)), sd=as.vector(as.matrix(pheno_alpha_sd)))
 
-svg("figures/figure1/pheno_variability.svg", height=4, width=4)
+svg("figures/figure2/pheno_variability.svg", height=4, width=4)
 
 ggplot(phenoDF) +
   geom_point(aes(x=mean, y=sd), color="#039bd0", size=1.5) + 
@@ -941,4 +932,189 @@ dev.off()
 pheno_esm1b_mean <- read.table("data/processed/pheno_esm1b_mean.txt", header=T)
 pheno_esm1b_sd <- read.table("data/processed/pheno_esm1b_sd.txt", header=T)
 phenoDF2 <- data.frame(mean=as.vector(as.matrix(pheno_esm1b_mean)), sd=as.vector(as.matrix(pheno_esm1b_sd)))
+
+
+
+
+
+
+# --------------------- Figure S3A ---------------------
+
+mr_gf_all    <- read.table("data/processed/mutrate_genofull_all_pred.txt", header=T)
+mr_pf_all <- read.table("data/processed/mutrate_phenofull_all_pred.txt", header=T)
+
+mr_ga_best    <- read.table("data/processed/mutrate_genoavrg_best_pred.txt", header=T)
+mr_pa_best <- read.table("data/processed/mutrate_phenoavrg_best_pred.txt", header=T)
+
+mr_ga_best_msb_el    <- read.table("data/processed/mutrate_genoavrg_msb_el_best_pred.txt", header=T)
+mr_pa_best_msb_el    <- read.table("data/processed/mutrate_phenoavrg_msb_el_best_pred.txt", header=T)
+mr_ga_best_msb_protel    <- read.table("data/processed/mutrate_genoavrg_msb_protel_best_pred.txt", header=T)
+mr_pa_best_msb_protel    <- read.table("data/processed/mutrate_phenoavrg_msb_protel_best_pred.txt", header=T)
+
+
+performDFsi <- data.frame(class=c('geno', 'pheno'),
+                          Avrg=c(round(cor(mr_ga_all$True, mr_ga_all$RF), 2), round(cor(mr_pa_all$True, mr_pa_all$RF), 2)),
+                          Best=c(round(cor(mr_ga_best$True, mr_ga_best$RF), 2), round(cor(mr_pa_best$True, mr_pa_best$RF), 2)), 
+                          Best_prot=c(round(cor(mr_ga_best_msb_protel$True, mr_ga_best_msb_protel$RF), 2), round(cor(mr_pa_best_msb_protel$True, mr_pa_best_msb_protel$RF), 2)),
+                          Best_mRNA=c(round(cor(mr_ga_best_msb_el$True, mr_ga_best_msb_el$RF), 2), round(cor(mr_pa_best_msb_el$True, mr_pa_best_msb_el$RF), 2))
+)
+
+performSI.m <- melt(performDFsi, id='class')
+performSI.m$variable <- factor(performSI.m$variable, levels=c("Best_prot", "Best_mRNA", "Best", "Avrg"))
+
+
+svg("figures/figure2/suppl_pred_comparision.svg", height=4, width=3.6)
+
+ggplot(performSI.m) + 
+  geom_hline(yintercept=0.5, linetype='dashed', col="#222222") + 
+  geom_col(aes(x=variable, y=value, fill=class), position=position_dodge2()) + 
+  scale_y_continuous(limits=c(0, 0.7)) + 
+  scale_fill_manual(values=c("#6b4c3f", "#ad8574")) + 
+  labs(y="Correlation", x="") + 
+  coord_flip() + 
+  theme_classic() + 
+  theme(
+    text=element_text(size=20), 
+    axis.text.y = element_text(size=14),
+    legend.title=element_blank(),
+    legend.position='top'
+  )
+
+dev.off()
+
+
+
+# --------------------- Figure S3B ---------------------
+
+mr_ga_best_msb_protel_rf <- read.table("data/processed/mutrate_genoavrg_msb_protel_features_RF.txt", header=T, sep='\t')
+mr_pa_best_msb_protel_rf <- read.table("data/processed/mutrate_phenoavrg_msb_protel_features_RF.txt", header=T, sep='\t')
+
+mr_ga_best_msb_el_rf <- read.table("data/processed/mutrate_genoavrg_msb_el_features_RF.txt", header=T, sep='\t')
+mr_pa_best_msb_el_rf <- read.table("data/processed/mutrate_phenoavrg_msb_el_features_RF.txt", header=T, sep='\t')
+
+fiSI.best <- cbind(colMeans(mr_ga_best_msb_el_rf), colMeans(mr_pa_best_msb_el_rf), colMeans(mr_ga_best_msb_protel_rf), colMeans(mr_pa_best_msb_protel_rf))
+colnames(fiSI.best) <- c("G_mRNA", "Ph_mRNA", "G_prot", "Ph_prot")
+fiSI.m <- melt(fiSI.best)
+
+
+
+svg("figures/figure2/suppl_protel_features.svg", height=4, width=4)
+
+ggplot(fiSI.m) + 
+  geom_col(aes(x=Var1, y=value, fill=Var2), position=position_dodge2()) + 
+  labs(x="", y="Feature importance") + 
+  scale_fill_manual(values=c("#6b4c3f", "#ad8574", "#5F7B35","#88B04B")) + 
+  coord_flip() + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=10), 
+    axis.text.x = element_text( size=12),
+    axis.text.y = element_text(size=10), 
+    legend.title = element_blank(), 
+    legend.position = 'top'
+  )
+
+dev.off()
+
+
+
+
+
+
+# --------------------- Figure S3C ---------------------
+
+arv <- read.table("data/processed/all_reg_vars_log.txt", header=T, sep='\t')
+plot(arv$geno_avrg, arv$cerebral.cortex)
+cor(arv$geno_avrg, arv$cerebral.cortex)
+
+msb_mrna <- read.table("data/processed/all_msb_mrna.txt", header=T, sep='\t')
+msb_prot <- read.table("data/processed/all_msb_prot.txt", header=T, sep='\t')
+
+res <- matrix(NA, ncol=4, nrow=29)
+colnames(res) <- c("G_mRNA", "Ph_mRNA", "G_prot", "Ph_prot")
+row.names(res) <- colnames(msb_prot)
+
+for (i in 1:29){
+  res[i,1] <- cor(arv$geno_avrg, msb_mrna[,i], use="complete", method='spearman')
+  res[i,2] <- cor(arv$pheno_avrg, msb_mrna[,i], use="complete", method='spearman')
+  res[i,3] <- cor(arv$geno_avrg, msb_prot[,i], use="complete", method='spearman')
+  res[i,4] <- cor(arv$pheno_avrg, msb_prot[,i], use="complete", method='spearman')
+}
+res <- as.data.frame(res)
+colo <- rep("non", 29)
+colo[which(row.names(res)=="Brain")] <- "brain"
+
+
+p.mrna <- ggplot(res, aes(x=G_mRNA, y=Ph_mRNA) ) + 
+  geom_point(aes(color=colo), size=3) + 
+  labs(x=expression(Correlation(avrgP[g]^d)), y=expression(Correlation(avrgP[ph]^d)), title="mRNA expr.") + 
+  scale_color_manual(values=c("#9826bb", "#222222")) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20), 
+    legend.title = element_blank(), 
+    legend.position = c(0.8, 0.2)
+  )
+
+p.prot <- ggplot(res, aes(x=G_prot, y=Ph_prot) ) + 
+  geom_point(aes(color=colo), size=3) + 
+  labs(x=expression(Correlation(avrgP[g]^d)), y=expression(Correlation(avrgP[ph]^d)), title="Protein expr.") + 
+  scale_color_manual(values=c("#9826bb", "#222222")) + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20), 
+    legend.title = element_blank(), 
+    legend.position = c(0.8, 0.2)
+  )
+
+
+svg("figures/figure2/suppl_elcor.svg", height=4, width=8)
+
+plot_grid(p.mrna, p.prot, ncol = 2, align = 'h')
+
+dev.off()
+
+
+# --------------------- Figure S3D ---------------------
+
+
+msb_prot <- read.table("data/processed/all_msb_prot.txt", header=T, sep='\t')
+msb_prot[msb_prot > 0 & is.na(msb_prot)==F] <- log(msb_prot[msb_prot > 0 & is.na(msb_prot)==F])
+msb_prot <- normalizeBetweenArrays(msb_prot)
+
+cor.simil <- matrix(NA, ncol(msb_prot), ncol(msb_prot))
+for (i in 1:ncol(msb_prot)){
+  for (j in 1:ncol(msb_prot)){
+    cor.simil[i,j] <- cor(msb_prot[,i], msb_prot[,j], use='complete', method='spearman')
+  }
+}
+colnames(cor.simil) <- colnames(msb_prot)
+row.names(cor.simil) <- colnames(msb_prot)
+
+elDF <- data.frame(eldiv=rowMeans(cor.simil), risk=colSums(arv$geno_full*10e-9*msb_prot, na.rm=T))
+elDF$class <- rep("non",29)
+elDF$class[which(colnames(msb_prot)=="Brain")] <- "brain"
+
+ct <- cor.test(elDF$eldiv[elDF$class=="non"], elDF$risk[elDF$class=="non"])
+
+
+svg("figures/figure3/suppl_eldiv.svg", height=4, width=4)
+
+ggplot(elDF, aes(x=eldiv, y=risk)) + 
+  geom_point(aes(color=class), size=3) + 
+  geom_smooth(data=elDF[elDF$class=="non",], method='glm', color="#BBBBBB", alpha=0.2, linetype='dashed', size=0.5) + 
+  geom_text(x=0.72, y=0.2233, hjust=0, label=paste("R =", round(ct$estimate, 3), sep=' '), col="#222222", size=4, stat="unique", show.legend=F) + 
+  geom_text(x=0.72, y=0.2228, hjust=0, label=paste("p =", round(ct$p.value, 5), sep=' '), col="#222222", size=4, stat="unique", show.legend=F) + 
+  scale_x_continuous(breaks=c(0.725, 0.7756, 0.825) ) + 
+  scale_color_manual(values=c("#9826bb", "#222222")) + 
+  labs(x="Protein expression similarity", y="Total mutation risk") + 
+  theme_classic() + 
+  theme(
+    text = element_text(size=20), 
+    legend.position = c(0.63, 0.93),
+    legend.title= element_blank()
+  )
+
+dev.off()
+
 

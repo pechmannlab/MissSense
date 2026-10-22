@@ -26,7 +26,8 @@ from sklearn.decomposition import PCA
 def parse_gff(fileIN):
     """
     Parses info from GenCode gff file
-    output writte to file
+    Input: path to gff file
+    Output: writte to file
     """
     output = open('../data/processed/gff.txt', 'w')
     output.writelines(["name", '\t', "class", '\t', "type", '\t', "transcript", '\t', "chr", '\t', "start", '\t', "end", '\t', "strand", '\n'])
@@ -70,6 +71,8 @@ def parse_gff(fileIN):
 def extract_uniprot_ids():
     """
     Match Uniprot ID to Ensembl canonical transcript IDs from Uniprot annotation
+    Input: hard-coded table with Ensembl and Uniprot IDs
+    Output: written to file
     """
 
     uniprot = pd.read_csv("../data/uniprotkb_taxonomy_id_9606_AND_reviewed_2024_08_11.tsv", header=0, index_col=False, sep='\t')
@@ -144,7 +147,7 @@ def prepare_nt_tables(enstIN, tseqs, gff):
     consequence predictions, and counts
     Transcript boundaries from gff file
     Input: list of canonical transcript Ensembl IDs, sequence dictionary, gff file
-    Output: written to files in ../data/nt/
+    Output: one table for each gene, written to files in ../data/nt/
     """
 
     outputDIR = '../data/nt/'
@@ -214,6 +217,13 @@ def prepare_nt_tables(enstIN, tseqs, gff):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def variantpred_by_transcript(fileIN):
     """
+
+    This function loops through the dbNSFP database and copies the scores for 
+    each missense variant by the selected variant predictors to a temporary file
+    for each gene. The use of temporary files is not efficient, but makes this 
+    possible on memory-limited machines.   
+
+
     Split select variant predictions from dbNSFP4.7 into per-transcript files
   
     Columns of dbNSFP_variant: 
@@ -574,10 +584,17 @@ def normalize_mutmat():
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def geno_riskscore(df, predictor, unweighted=True):
+def geno_riskscore(df, predictor, unweighted=False):
     """
-    Compute genotypic mutation risk score
+    Computes genotypic mutation risk score
     VEPs used: 'polyphen2_hdiv', 'polyphen2_hvar', 'EVE', 'AlphaMissense', 'ESM1b'
+    Input:  - per-gene dataframe with all possible mutations and prediction scores
+            - choice of prediction algorithm
+            - unweighted: if True
+    Output: - average score, i.e. normalized by sequence legnth
+            - full score
+            - neutral score, i.e. all mutations, not just damaging ones
+            - coverage, i.e. percentage of variants with prediction scores vs. all possible variants
     """
 
     # mutation rates from Lynch paper
@@ -665,6 +682,8 @@ def geno_riskscore(df, predictor, unweighted=True):
 def geno_mutations():
     """
     Compute genotypic mutation risk for all genes with a file in '../data/ntfull'
+    Wrapper function to loop through all gene tables and compute the mutation risk
+    Output: table with scores, written to file
     """
 
     genoDF = pd.DataFrame(columns=['Gene', 'PP2hdiv_avrg', 'PP2hdiv_full', 'PP2hdiv_neutral','PP2hdiv_coverage',
@@ -695,7 +714,8 @@ def geno_mutations():
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def geno_mutations_unweighted():
     """
-    gene mutscores for all files in ntfull
+    Computes the 'unweighted' mutation risk scores, i.e. without nucleotide-specific mutation rates. 
+    Output: table with scores, written to file
     """
 
     genoDF = pd.DataFrame(columns=['Gene', 'PP2hdiv_avrg', 'PP2hdiv_full', 'PP2hdiv_neutral','PP2hdiv_coverage',
@@ -727,7 +747,7 @@ def geno_mutations_unweighted():
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def geno_riskscore_strict(df):
     """
-    compute genetic mutation risk score only for sites that also include EVE predictions in dbSNFP4.7
+    Compute genetic mutation risk score only for sites that also include EVE predictions in dbSNFP4.7
     'polyphen2_hdiv', 'polyphen2_hvar', 'EVE', 'AlphaMissense', 'ESM1b'
     """
 
@@ -798,7 +818,8 @@ def geno_riskscore_strict(df):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def geno_mutations_strict():
     """
-    gene mutscores for all files in ntfull
+    Wrapper function to compute the 'strict' genotypic mutation risk for all files in ntfull
+    Output: table of scores, written to file
     """
 
 
@@ -828,7 +849,7 @@ def geno_mutations_strict():
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def count_mutations():
     """
-    Get mutation counts in data
+    Get mutation counts by type in data
     """
 
     mutdict = {}
@@ -924,6 +945,10 @@ def pheno_riskscore(df, predictor, uniprot):
     - a random control where all phenotypic mutations are equally likely (rand)
 
     Input: dataframe with sequence, mutations and predictions; predictor; uniprot ID
+    Output: - number of positions (length)
+            - phenotypic mutation risk scores for different models as well as for 
+            damaging and all (control) mutations
+            - additional summary and qc statistics
     """
 
    
@@ -1117,7 +1142,9 @@ def pheno_stats(df, predictor):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def pheno_mutations():
     """
-    Phenotypic mutation risk computed for all genes in ntfull
+    Wrapper function to compute the phenotypic mutation risk computed for all genes in ntfull
+    This function loops through the annotated gene table and computes scores for each gene
+    Output: a table of scores, written to file
     """
 
     phenoDF = pd.DataFrame(columns=['alpha_len', 'alpha_ribo_all', 'alpha_ribo_del', 'alpha_plpl_all', 'alpha_plpl_del', 'alpha_rand_all', 'alpha_rand_del',
@@ -1241,7 +1268,7 @@ def pheno_mutations():
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def important_features(data, preOUT):
     """
-    Fit RF and LM models, leave-one-out crossvalidated, get feature importances
+    Fit Random Forest (RF) and linear models (LM), leave-one-out crossvalidated, get feature importances
     first column is the response variable to be fitted/predicted
     """
 
@@ -1630,12 +1657,21 @@ if __name__ == '__main__':
             result_exp[ix,:] = np.around(np.array(expDF.loc[current_ensg]), 3)
         if i in list(hlDF.index):
             result_hl[ix,:] = np.around(np.array(hlDF.loc[i]), 3)
+        if current_ensg in list(msb_mRNA.index):
+            result_msb_mrna[ix,:] = np.around(np.array(msb_mRNA.loc[current_ensg]), 3)
+        if current_ensg in list(msb_prot.index):
+            result_msb_prot[ix,:] = np.around(np.array(msb_prot.loc[current_ensg]), 3)
+
 
     resultDF_exp = pd.DataFrame(data=result_exp, columns=expDF.columns)
     result_exp2 = np.copy(result_exp)
     result_exp2[result_exp2 > 0] = np.log(result_exp2[result_exp2 > 0])     # !! log !!
     resultDF_exp2 = pd.DataFrame(data=result_exp2, columns=expDF.columns)
     resultDF_hl = pd.DataFrame(data=result_hl, columns=hlDF.columns)
+    resultDF_msb_mrna = pd.DataFrame(data=result_msb_mrna, columns=msb_mRNA.columns)
+    resultDF_msb_mrna.to_csv("../data/processed/all_msb_mrna.txt", header=True, index=False, sep='\t', na_rep="NA")
+    resultDF_msb_prot = pd.DataFrame(data=result_msb_prot, columns=msb_prot.columns)
+    resultDF_msb_prot.to_csv("../data/processed/all_msb_prot.txt", header=True, index=False, sep='\t', na_rep="NA")
 
     allDF = pd.concat((resultDF, resultDF_exp, resultDF_hl), axis=1)
     allDF2 = pd.concat((resultDF, resultDF_exp2, resultDF_hl), axis=1)
@@ -1684,3 +1720,25 @@ if __name__ == '__main__':
 
     important_features(arv[features_phenoavrg_best], "mutrate_phenoavrg_best")
     important_features(arv[features_genoavrg_best], "mutrate_genoavrg_best")
+
+
+
+    resultDF_msb_mrna = pd.read_csv("../data/processed/all_msb_mrna.txt", header=0, index_col=None, sep='\t') 
+    resultDF_msb_prot = pd.read_csv("../data/processed/all_msb_prot.txt", header=0, index_col=None, sep='\t')
+    resultDF_msb_prot /= np.mean(resultDF_msb_prot)
+
+    DF_msb_prot = pd.concat((resultDF, resultDF_msb_prot), axis=1)
+    important_features(DF_msb_prot[['pheno_avrg'] + list(resultDF_msb_prot.columns)], "mutrate_phenoavrg_msb_protel")
+    important_features(DF_msb_prot[['geno_avrg'] + list(resultDF_msb_prot.columns)], "mutrate_genoavrg_msb_protel")
+
+    DF_msb_mrna = pd.concat((resultDF, resultDF_msb_mrna), axis=1)
+    important_features(DF_msb_mrna[['pheno_avrg'] + list(resultDF_msb_mrna.columns)], "mutrate_phenoavrg_msb_el")
+    important_features(DF_msb_mrna[['geno_avrg'] + list(resultDF_msb_mrna.columns)], "mutrate_genoavrg_msb_el")
+
+    DF_msb_prot_best = pd.concat((arv, resultDF_msb_prot), axis=1)
+    important_features(DF_msb_prot_best[['pheno_avrg', 'contacts', 'Brain'] ], "mutrate_phenoavrg_msb_protel_best")
+    important_features(DF_msb_prot_best[['geno_avrg', 'contacts', 'Brain'] ], "mutrate_genoavrg_msb_protel_best")
+
+    DF_msb_mrna_best = pd.concat((arv, resultDF_msb_mrna), axis=1)
+    important_features(DF_msb_mrna[['pheno_avrg', 'contacts', 'Brain'] ], "mutrate_phenoavrg_msb_el_best")
+    important_features(DF_msb_mrna[['geno_avrg', 'contacts', 'Brain'] ], "mutrate_genoavrg_msb_el_best")

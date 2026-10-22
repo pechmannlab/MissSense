@@ -11,6 +11,8 @@ def components_entropy(Gmatrix):
     """
     Calculation of network entropy
     BFS to compute size of connected components
+    Input: undirected graph in matrix form
+    Output: entropy
     """
 
     N = np.shape(Gmatrix)[0]
